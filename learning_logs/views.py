@@ -24,8 +24,7 @@ def topics(request):
 def topic(request, topic_id):
     """Detailed page of topic"""
     topic = Topic.objects.get(id=topic_id)
-    if topic.owner != request.user: # did topic is current user
-        raise Http404
+    check_topic_owner(topic.owner, request.user)
     entries = topic.entry_set.order_by('-date_added')
     context = {'topic': topic, 'entries': entries}
     return render(request, 'learning_logs/topic.html', context)
@@ -51,6 +50,7 @@ def new_topic(request):
 def new_entry(request, topic_id):
     """Create new entry to topic"""
     topic = Topic.objects.get(id=topic_id)
+    check_topic_owner(topic.owner, request.user)
     if request.method != 'POST':
         form = EntryForm()
     else:
@@ -69,8 +69,7 @@ def edit_entry(request, entry_id):
     """Edit existing entry on topic"""
     entry = Entry.objects.get(id=entry_id)
     topic = entry.topic
-    if topic.owner != request.user:
-        raise Http404
+    check_topic_owner(topic.owner, request.user)
     if request.method != 'POST':
         form = EntryForm(instance=entry)
     else:
@@ -80,3 +79,9 @@ def edit_entry(request, entry_id):
             return HttpResponseRedirect(reverse('learning_logs:topic', args=[topic.id]))
     context = {'entry': entry, 'topic': topic, 'form': form}
     return render(request, 'learning_logs/edit_entry.html', context)
+
+
+def check_topic_owner(owner, user):
+    """Check if current user is also owner"""
+    if owner != user:
+        raise Http404
